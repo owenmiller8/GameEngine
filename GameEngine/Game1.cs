@@ -4,80 +4,118 @@ using Microsoft.Xna.Framework.Input;
 
 namespace GameEngine
 {
-    /// <summary>
-    /// This is the main type for your game.
-    /// </summary>
+
     public class Game1 : Game
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
 
+        public static System.Random Randomiser = new System.Random();
+        //public static randomInt = Randomiser.Next
+
+        Texture2D spriteSheet;    //the sprites
+        public static Rectangle[,] sprites;      //the positions of sprites on the spritesheet
+        Tile[,] tileMap;         //the tile 
+        const int tileOriginalSize=16; //original size in tilemap
+		public static int tileSize=64; //scaled size in tilemap
+        Vector2 scale;              // tileSize/tileOriginalSize
+        Map tempMap;
+
+
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
+            //graphics.IsFullScreen = true;
             Content.RootDirectory = "Content";
         }
 
-        /// <summary>
-        /// Allows the game to perform any initialization it needs to before starting to run.
-        /// This is where it can query for any required services and load any non-graphic
-        /// related content.  Calling base.Initialize will enumerate through any components
-        /// and initialize them as well.
-        /// </summary>
         protected override void Initialize()
         {
-            // TODO: Add your initialization logic here
+            scale=new Vector2(tileSize / tileOriginalSize, tileSize / tileOriginalSize);
 
             base.Initialize();
         }
 
-        /// <summary>
-        /// LoadContent will be called once per game and is the place to load
-        /// all of your content.
-        /// </summary>
         protected override void LoadContent()
         {
-            // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            // TODO: use this.Content to load your game content here
-        }
+            System.IO.FileStream fileStream = new System.IO.FileStream("C:\\Users\\Pertt\\Source\\Repos\\GameEngine\\GameEngine\\Content\\sprites\\spritesheet.png", System.IO.FileMode.Open);
+            spriteSheet = Texture2D.FromStream(GraphicsDevice, fileStream);
+            fileStream.Dispose();
 
-        /// <summary>
-        /// UnloadContent will be called once per game and is the place to unload
-        /// game-specific content.
-        /// </summary>
+
+			sprites = new Rectangle[spriteSheet.Width / tileOriginalSize, spriteSheet.Height / tileOriginalSize];
+			for(int i = 0; i < spriteSheet.Height / tileOriginalSize; i++)
+			{
+				for(int j = 0; j < spriteSheet.Width / tileOriginalSize; j++)
+				{
+					sprites[i, j] = new Rectangle(j * tileOriginalSize, i * tileOriginalSize, tileOriginalSize, tileOriginalSize);
+				}
+			}
+            tempMap = new Map(10);
+        }
         protected override void UnloadContent()
         {
-            // TODO: Unload any non ContentManager content here
         }
-
-        /// <summary>
-        /// Allows the game to run logic such as updating the world,
-        /// checking for collisions, gathering input, and playing audio.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            // TODO: Add your update logic here
 
             base.Update(gameTime);
         }
 
-        /// <summary>
-        /// This is called when the game should draw itself.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
-
-            // TODO: Add your drawing code here
+            spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
+            foreach(Tile tile in tempMap.tileMap)
+            {
+                spriteBatch.Draw(spriteSheet, tile.position, tile.sprite, Color.White, 0f, new Vector2(0,0), scale, SpriteEffects.None, 0);
+            }
+            
+			spriteBatch.End();
 
             base.Draw(gameTime);
+        }
+    }
+    public class Map
+    {
+        public int mapSize;
+        public Tile[,] tileMap;
+
+        public Map(int size)
+        {
+            mapSize = size;
+            tileMap = new Tile[mapSize, mapSize];
+            GenerateLevel();
+        }
+        private void GenerateLevel()
+        {
+            for(int i = 0; i < tileMap.GetLength(0); i++)
+            {
+                for(int j = 0; j < tileMap.GetLength(1); j++)
+                {
+                    tileMap[i, j] = new Tile(new Vector2(i * Game1.tileSize, j * Game1.tileSize), Game1.sprites[Game1.Randomiser.Next(0, 2), Game1.Randomiser.Next(0, 2)], false);
+                }
+            }
+        }
+    }
+    public class Tile
+    {
+        public Vector2 position;
+        public Rectangle? sprite;
+        public bool collision;
+
+        public bool seen;
+
+        public Tile(Vector2 pos, Rectangle spr, bool coll)
+        {
+            position = pos;
+            sprite = spr;
+            collision = coll;
         }
     }
 }
