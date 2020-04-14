@@ -14,17 +14,18 @@ namespace GameEngine
 
         Texture2D spriteSheet;    //the sprites
         public static Rectangle[,] Sprites;      //the positions of sprites on the spritesheet
-        Tile[,] tileMap;         //the tile 
         const int TileOriginalSize=16; //original size in tilemap
 		public static int TileSize=64; //scaled size in tilemap
         Vector2 scale;              // tileSize/tileOriginalSize
-        Map tempMap;
+        public static Map tempMap;
         Player player;
 
 
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
+            //this.graphics.SynchronizeWithVerticalRetrace = false;
+            //base.IsFixedTimeStep = false;
             //graphics.IsFullScreen = true;
             Content.RootDirectory = "Content";
         }
@@ -39,7 +40,7 @@ namespace GameEngine
         protected override void LoadContent()
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
-            System.IO.FileStream fileStream = new System.IO.FileStream("C:\\Users\\Owen\\source\\repos\\GameEngine\\GameEngine\\Content\\sprites\\spritesheet.png", System.IO.FileMode.Open);
+            System.IO.FileStream fileStream = new System.IO.FileStream("C:\\Users\\Pertt\\Source\\Repos\\GameEngine\\GameEngine\\Content\\sprites\\spritesheet.png", System.IO.FileMode.Open);
             spriteSheet = Texture2D.FromStream(GraphicsDevice, fileStream);
             fileStream.Dispose();
 
@@ -53,7 +54,7 @@ namespace GameEngine
 				}
 			}
             tempMap = new Map(10);
-            player = new Player(100, 100, new Vector2(2, 0), 0.05f, -0.1f);
+            player = new Player(100, 10, new Vector2(2, 0), 0.15f, 0.4f, 2.5f);
         }
         protected override void UnloadContent()
         {
@@ -63,7 +64,8 @@ namespace GameEngine
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-
+            Actor.UpdateAll();
+            System.Console.WriteLine(player.GetCurrentTile());
             base.Update(gameTime);
         }
 
@@ -72,12 +74,13 @@ namespace GameEngine
             GraphicsDevice.Clear(Color.CornflowerBlue);
             spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
             tempMap.Draw(spriteBatch, scale, spriteSheet);
-            player.Draw(spriteBatch, scale, spriteSheet);
+            Actor.DrawAll(spriteBatch, scale, spriteSheet);
 			spriteBatch.End();
 
             base.Draw(gameTime);
         }
     }
+
     public class Map
     {
         public int MapSize;
@@ -95,7 +98,7 @@ namespace GameEngine
             {
                 for(int j = 0; j < TileMap.GetLength(1); j++)
                 {
-                    TileMap[i, j] = new Tile(new Vector2(i * Game1.TileSize, j * Game1.TileSize), Game1.Sprites[Game1.Randomiser.Next(0, 2), Game1.Randomiser.Next(0, 2)], false, 0f);
+                    TileMap[i, j] = new Tile(new Vector2(i * Game1.TileSize, j * Game1.TileSize), Game1.Sprites[Game1.Randomiser.Next(0, 2), Game1.Randomiser.Next(0, 2)], false, 0f); //Generate random map
                 }
             }
         }
@@ -108,9 +111,11 @@ namespace GameEngine
             }
         }
     }
+
     public class Tile
     {
         public Vector2 position;
+        public Vector2 center;
         public Rectangle sprite;
         public bool collision;
         public float Friction;
@@ -122,10 +127,18 @@ namespace GameEngine
             sprite = spr;
             collision = coll;
             Friction = friction;
+            center = new Vector2(position.X + Game1.TileSize / 2, position.Y + Game1.TileSize / 2);
+        }
+        public bool IsSurrounding(Tile tile)
+        {
+            return System.Math.Abs(this.position.X) - System.Math.Abs(tile.position.X) == Game1.TileSize && System.Math.Abs(this.position.Y) - System.Math.Abs(tile.position.Y) == Game1.TileSize;
+        }
+        public override string ToString()
+        {
+            return position.ToString();
         }
     }
 
-    
     public class Actor
     {
         public int MaxHealth;
@@ -136,69 +149,92 @@ namespace GameEngine
         public bool Accelerating;
         public bool Decelerating;
         
+        public static System.Collections.Generic.List<Actor> Actors = new System.Collections.Generic.List<Actor>();
+        
 
-        public Actor(int maxHealth, int health, Vector2 spriteIndex, float acceleration, float deceleration)
+        public Actor(int maxHealth, int health, Vector2 spriteIndex, float acceleration, float deceleration, float maxVelocity)
         {
             MaxHealth = maxHealth;
             Health = health;
             SpriteIndex = spriteIndex;
-            movement = new Movement(acceleration, deceleration);
+            movement = new Movement(acceleration, deceleration, maxVelocity);
             Sprite = Game1.Sprites[(int)SpriteIndex.X, (int)SpriteIndex.Y];
+            
+            Actors.Add(this);
         }
 
+        public void Update()
+        {
+            movement.Update();
+        }
         public void Draw(SpriteBatch spriteBatch, Vector2 scale, Texture2D spriteSheet)
         {
-            spriteBatch.Draw(spriteSheet, this.movement.Position, this.Sprite, Color.White, 0f, new Vector2(0, 0), scale, SpriteEffects.None, 0);
+            if(this.OnScreen()) spriteBatch.Draw(spriteSheet, this.movement.Position, this.Sprite, Color.White, 0f, new Vector2(0, 0), scale, SpriteEffects.None, 0);
+        }
+        public static void DrawAll(SpriteBatch spriteBatch, Vector2 scale, Texture2D spriteSheet)
+        {
+            Actors.ForEach(a => a.Draw(spriteBatch, scale, spriteSheet));
+        }
+        public static void UpdateAll()
+        {
+            Actors.ForEach(a => a.Update());
+        }
+        private Tile[] GetSurroundingTiles()
+        {
+            Tile current = GetCurrentTile();
+            for(int i = 0; i < Game1.tempMap.TileMap.GetLength(0); i++)
+            {
+                for(int j=0;j<Game1.tempMap.TileMap.GetLength(1); j++)
+                {
+                    if(Game1.tempMap.TileMap[i,j].IsSurrounding(current))
+                }
+            }
+            return null;
+        }
+        public Tile GetCurrentTile()
+        {
+            return Game1.tempMap.TileMap[(int)System.Math.Floor(movement.Center.X/Game1.TileSize), (int)System.Math.Floor(movement.Center.Y / Game1.TileSize)];
+        }
+        public bool OnScreen()
+        {
+            return true;
+        }
+        public void Delete()
+        {
+            Actors.Remove(this);
         }
     }
 
     public class Player : Actor
     {
-        public Player(int maxHealth, int health, Vector2 spriteIndex, float acceleration, float deceleration) : base(maxHealth, health, spriteIndex, acceleration, deceleration)
+        public Player(int maxHealth, int health, Vector2 spriteIndex, float acceleration, float deceleration, float maxVelocity) : base(maxHealth, health, spriteIndex, acceleration, deceleration, maxVelocity)
         {
-
+            movement = new PlayerMovement(acceleration, deceleration, maxVelocity);
         }
     }
 
     public class Movement
     {
         public Vector2 Position;
-        public readonly Vector2 MaxValocity = new Vector2(2f * Game1.TileSize, 2f * Game1.TileSize);
         public Vector2 Velocity = new Vector2(0, 0);
+        public Vector2 Center;
+        public readonly float MaxVelocity;
         public readonly float Acceleration;
         public readonly float Deceleration;
-        public Directions direction;
 
-        public Movement(float acceleration, float decelaration)
+        public Movement(float acceleration, float decelaration, float maxVelocity)
         {
             Acceleration = acceleration;
             Deceleration = decelaration;
+            MaxVelocity = maxVelocity;
+            Center = new Vector2(Position.X + Game1.TileSize / 2, Position.Y + Game1.TileSize / 2);
         }
 
-        public void Update()
+        public virtual void Update()
         {
-            GetDirection();
-            //UpdateSpeed();
+            Center.X = Position.X + Game1.TileSize / 2;
+            Center.Y = Position.Y + Game1.TileSize / 2;
             UpdatePosition();
-        }
-
-        private void UpdateSpeed(bool accelerating, bool decelerating)
-        {
-            switch (direction)
-            {
-                case Directions.Up:
-                    Velocity.Y += accelerating ? Acceleration : decelerating ? Deceleration : 0;
-                    break;
-                case Directions.Right:
-                    Velocity.X += accelerating ? Acceleration : decelerating ? Deceleration : 0;
-                    break;
-                case Directions.Down:
-                    Velocity.Y -= accelerating ? Acceleration : decelerating ? Deceleration : 0;
-                    break;
-                case Directions.Left:
-                    Velocity.X -= accelerating ? Acceleration : decelerating ? Deceleration : 0;
-                    break;
-            }
         }
 
         private void UpdatePosition()
@@ -207,34 +243,107 @@ namespace GameEngine
             Position.Y += Velocity.Y;
         }
 
-        private void GetDirection()
+        
+    }
+
+    public class ActorCollision
+    {
+        public float Radius;
+        public Actor Actor;
+
+        public ActorCollision(Actor actor, int radius)
+        {
+            Actor = actor;
+            Radius = radius;
+        }
+
+        public bool CollidesWith(Tile tile)
+        {
+            return false;
+        }
+        public bool CollidesWith(Actor actor)
+        {
+            return false;
+        }
+    }
+
+    public class PlayerMovement : Movement
+    {
+
+        public PlayerMovement(float acceleration, float decelaration, float maxVelocity) : base(acceleration, decelaration, maxVelocity)
+        {
+        }
+        public override void Update()
+        {
+            HandleFriction();
+            HandleKeyInput();
+            base.Update();
+        }
+        private void UpdateSpeed(Directions direction)
+        {
+            switch (direction)
+            {
+                case Directions.Up:
+                    Velocity.Y -= Velocity.Y <= 0 ? Acceleration : Deceleration;
+                    if (-Velocity.Y > MaxVelocity) Velocity.Y = -MaxVelocity;
+                    break;
+                case Directions.Right:
+                    Velocity.X += Velocity.X >= 0 ? Acceleration : Deceleration;
+                    if (Velocity.X > MaxVelocity) Velocity.X = MaxVelocity;
+                    break;
+                case Directions.Down:
+                    Velocity.Y += Velocity.Y >= 0 ? Acceleration : Deceleration;
+                    if (Velocity.Y > MaxVelocity) Velocity.Y = MaxVelocity;
+                    break;
+                case Directions.Left:
+                    Velocity.X -= Velocity.X <= 0 ? Acceleration : Deceleration;
+                    if (-Velocity.X > MaxVelocity) Velocity.X= -MaxVelocity;
+                    break;
+            }
+            
+            
+        }
+        private float GetFriction()
+        {
+            return 0.03f;
+        }
+
+        private void HandleFriction()
+        {
+            float friction = GetFriction();
+            
+            if (Velocity.Y != 0) Velocity.Y += Velocity.Y > 0 ? -friction : friction;
+            if (Velocity.X != 0) Velocity.X += Velocity.X > 0 ? -friction : friction;
+            if (System.Math.Abs(Velocity.Y) < friction) Velocity.Y = 0;
+            if (System.Math.Abs(Velocity.X) < friction) Velocity.X = 0;
+        }
+        private void HandleKeyInput()
         {
             foreach (Keys key in Keyboard.GetState().GetPressedKeys())
-            {
+            { 
                 switch (key)
                 {
                     case Keys.W:
-                        direction = Directions.Up;
+                        UpdateSpeed(Directions.Up);
                         break;
                     case Keys.D:
-                        direction = Directions.Right;
+                        UpdateSpeed(Directions.Right);
                         break;
                     case Keys.S:
-                        direction = Directions.Down;
+                        UpdateSpeed(Directions.Down);
                         break;
                     case Keys.A:
-                        direction = Directions.Left;
+                        UpdateSpeed(Directions.Left);
                         break;
                 }
             }
         }
-    }
-
-    public enum Directions
-    {
-        Up,
-        Right,
-        Down,
-        Left
+        enum Directions
+        {
+            Up,
+            Right,
+            Down,
+            Left
+        }
     }
 }
