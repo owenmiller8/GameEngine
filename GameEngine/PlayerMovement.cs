@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,10 +8,10 @@ using System.Threading.Tasks;
 
 namespace GameEngine
 {
-    public class PlayerMovement : Movement
+    public class PlayerMovement : ActorMovement
     {
 
-        public PlayerMovement(float acceleration, float decelaration, float maxVelocity) : base(acceleration, decelaration, maxVelocity)
+        public PlayerMovement(Actor actor, float acceleration, float decelaration, float maxVelocity) : base(actor, acceleration, decelaration, maxVelocity)
         {
         }
         public override void Update()

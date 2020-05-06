@@ -22,11 +22,11 @@ namespace GameEngine
             sprite = spr;
             collision = coll;
             Friction = friction;
-            center = new Vector2(position.X + Game1.TileSize / 2, position.Y + Game1.TileSize / 2);
+            center = new Vector2(position.X + Game.TileSize / 2, position.Y + Game.TileSize / 2);
         }
         public bool IsSurrounding(Tile tile)
         {
-            return System.Math.Abs(this.position.X) - System.Math.Abs(tile.position.X) == Game1.TileSize && System.Math.Abs(this.position.Y) - System.Math.Abs(tile.position.Y) == Game1.TileSize;
+            return System.Math.Abs(this.position.X - tile.position.X) <= Game.TileSize && System.Math.Abs(this.position.Y - tile.position.Y) <= Game.TileSize;
         }
         public override string ToString()
         {
