@@ -9,9 +9,9 @@ namespace GameEngine
 {
     public class Player : Actor
     {
-        public Player(int maxHealth, int health, Vector2 spriteIndex, float acceleration, float deceleration, float maxVelocity) : base(maxHealth, health, spriteIndex, acceleration, deceleration, maxVelocity)
+        public Player(int maxHealth, int health, Vector2 position, Vector2 spriteIndex, float acceleration, float deceleration, float maxVelocity) : base(maxHealth, health, position, spriteIndex, acceleration, deceleration, maxVelocity)
         {
-            movement = new PlayerMovement(acceleration, deceleration, maxVelocity);
+            Movement = new PlayerMovement(this, acceleration, deceleration, maxVelocity);
         }
     }
 }

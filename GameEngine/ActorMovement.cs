@@ -7,34 +7,35 @@ using System.Threading.Tasks;
 
 namespace GameEngine
 {
-    public class Movement
+    public class ActorMovement
     {
-        public Vector2 Position;
         public Vector2 Velocity = new Vector2(0, 0);
-        public Vector2 Center;
+        public Actor Actor;
         public readonly float MaxVelocity;
         public readonly float Acceleration;
         public readonly float Deceleration;
 
-        public Movement(float acceleration, float decelaration, float maxVelocity)
+        public ActorMovement(Actor actor, float acceleration, float decelaration, float maxVelocity)
         {
             Acceleration = acceleration;
             Deceleration = decelaration;
             MaxVelocity = maxVelocity;
-            Center = new Vector2(Position.X + Game1.TileSize / 2, Position.Y + Game1.TileSize / 2);
+            Actor = actor;
+            
         }
 
         public virtual void Update()
         {
-            Center.X = Position.X + Game1.TileSize / 2;
-            Center.Y = Position.Y + Game1.TileSize / 2;
             UpdatePosition();
+            Actor.Collision.UpdateCollisionPoints();
         }
 
         private void UpdatePosition()
         {
-            Position.X += Velocity.X;
-            Position.Y += Velocity.Y;
+            Actor.Position.X += Velocity.X;
+            Actor.Position.Y += Velocity.Y;
+            Actor.Center.X = Actor.Position.X + Game.TileSize / 2;
+            Actor.Center.Y = Actor.Position.Y + Game.TileSize / 2;
         }
     }
 }

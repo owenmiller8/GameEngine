@@ -12,33 +12,43 @@ namespace GameEngine
     {
         public int MaxHealth;
         public int Health;
+        public Vector2 Center;
+        public Vector2 Position;
         public Vector2 SpriteIndex;
         public Rectangle Sprite;
-        public Movement movement;
-        public bool Accelerating;
-        public bool Decelerating;
+        public ActorMovement Movement;
+        public ActorCollision Collision;
+
 
         public static System.Collections.Generic.List<Actor> Actors = new System.Collections.Generic.List<Actor>();
 
 
-        public Actor(int maxHealth, int health, Vector2 spriteIndex, float acceleration, float deceleration, float maxVelocity)
+        public Actor(int maxHealth, int health, Vector2 position, Vector2 spriteIndex, float acceleration, float deceleration, float maxVelocity)
         {
             MaxHealth = maxHealth;
             Health = health;
             SpriteIndex = spriteIndex;
-            movement = new Movement(acceleration, deceleration, maxVelocity);
-            Sprite = Game1.Sprites[(int)SpriteIndex.X, (int)SpriteIndex.Y];
-
+            Position = position;
+            Center = new Vector2(Position.X + Game.TileSize / 2, Position.Y + Game.TileSize / 2);
+            Movement = new ActorMovement(this, acceleration, deceleration, maxVelocity);
+            Sprite = Game.Sprites[(int)SpriteIndex.X, (int)SpriteIndex.Y];
+            Collision = new ActorCollision(this, Game.TileSize / 3);
             Actors.Add(this);
         }
 
         public void Update()
         {
-            movement.Update();
+            Movement.Update();
+            System.Console.WriteLine(Collision.CollidesWith(GetSurroundingTiles()));
         }
         public void Draw(SpriteBatch spriteBatch, Vector2 scale, Texture2D spriteSheet)
         {
-            if (this.OnScreen()) spriteBatch.Draw(spriteSheet, this.movement.Position, this.Sprite, Color.White, 0f, new Vector2(0, 0), scale, SpriteEffects.None, 0);
+            if (this.OnScreen()) spriteBatch.Draw(spriteSheet, Position, this.Sprite, Color.White, 0f, new Vector2(0, 0), scale, SpriteEffects.None, 0);
+
+            foreach(var collisionPoint in Collision.CollisionPoints)
+            {
+                spriteBatch.Draw(Game.rectTexture, collisionPoint, Color.Red);
+            }
         }
         public static void DrawAll(SpriteBatch spriteBatch, Vector2 scale, Texture2D spriteSheet)
         {
@@ -52,13 +62,13 @@ namespace GameEngine
         {
             Tile current = GetCurrentTile();
             List<Tile> surroundingTiles = new List<Tile>();
-            for (int i = 0; i < Game1.tempMap.TileMap.GetLength(0); i++)
+            for (int i = 0; i < Game.tempMap.TileMap.GetLength(0); i++)
             {
-                for (int j = 0; j < Game1.tempMap.TileMap.GetLength(1); j++)
+                for (int j = 0; j < Game.tempMap.TileMap.GetLength(1); j++)
                 {
-                    if (Game1.tempMap.TileMap[i, j].IsSurrounding(current))
+                    if (Game.tempMap.TileMap[i, j].IsSurrounding(current))
                     {
-                        surroundingTiles.Add(Game1.tempMap.TileMap[i, j]);
+                        surroundingTiles.Add(Game.tempMap.TileMap[i, j]);
                     }
                 }
             }
@@ -66,7 +76,7 @@ namespace GameEngine
         }
         public Tile GetCurrentTile()
         {
-            return Game1.tempMap.TileMap[(int)System.Math.Floor(movement.Center.X / Game1.TileSize), (int)System.Math.Floor(movement.Center.Y / Game1.TileSize)];
+            return Game.tempMap.TileMap[(int)System.Math.Floor(Center.X / Game.TileSize), (int)System.Math.Floor(Center.Y / Game.TileSize)];
         }
         public bool OnScreen()
         {
